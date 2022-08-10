@@ -1,0 +1,61 @@
+﻿@page "/"
+@using BlazorInputFile
+@inject HttpClient Http
+
+@if (!dataLoaded)
+{
+    <BlazorInputFile.InputFile OnChange="HandleSelection" />
+}
+else
+{
+    <DataGrid TItem="DataRow"
+            Data="@dataSource"
+            PageSize="5"
+            ShowPager="true"
+            @ref="dataGrid">
+
+        @foreach (var fieldName in dataSource.FieldNames)
+        {
+            string fieldPath = nameof(DataRow.ObjectRepresentation) + "." + fieldName;
+
+            <DataGridColumn TItem="DataRow" Caption="@fieldName" Sortable="true">
+                <DisplayTemplate>
+                    @{
+                        var eoAsDict = ((IDictionary<String, Object>)context.ObjectRepresentation);
+
+                        @eoAsDict[fieldName]
+                    }
+                </DisplayTemplate>
+            </DataGridColumn>
+        }
+
+    </DataGrid>
+}
+
+@code{
+    bool dataLoaded = false;
+    string status = "";
+
+    DataGrid<DataRow> dataGrid;
+    DataSource dataSource;
+    DataRow selectedRow;
+
+    async Task HandleSelection(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+            ms.Position = 0;
+
+            dataSource = DataSource.LoadFromCSV(ms);
+
+            dataLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+}
